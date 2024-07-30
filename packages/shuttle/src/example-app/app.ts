@@ -159,12 +159,12 @@ export class App implements MessageHandler {
       await reconciler.reconcileMessagesForFid(
         fid,
         async (message, missingInDb, prunedInDb, revokedInDb) => {
-          if (missingInDb) {
-            await HubEventProcessor.handleMissingMessage(this.db, message, this);
-          } else if (prunedInDb || revokedInDb) {
-            const messageDesc = prunedInDb ? "pruned" : revokedInDb ? "revoked" : "existing";
+          if (prunedInDb || revokedInDb) {
+            const messageDesc = prunedInDb ? "pruned" : "revoked";
             log.info(`Reconciled ${messageDesc} message ${bytesToHexString(message.hash)._unsafeUnwrap()}`);
-          }
+          } else if (missingInDb || process.env["FORCE_REPROCESS_EXISTING"]) {
+            await HubEventProcessor.handleMissingMessage(this.db, message, this);
+          } 
         },
         async (message, missingInHub) => {
           if (missingInHub) {
